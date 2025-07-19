@@ -9,16 +9,20 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
 func main() {
+	ctx, _ := context.WithCancel(context.Background())
 	changeCh := make(chan string)
 
-	if err := runApplication(changeCh, os.Args[1:]); err != nil {
+	if err := fetchSecrets(ctx); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := runApplication(ctx, changeCh, os.Args[1:]); err != nil {
 		log.Fatal(err)
 	}
 }
