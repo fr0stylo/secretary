@@ -58,6 +58,7 @@ COPY --from=builder /app/secretary .
 COPY your-application .
 
 # Set AWS credentials or use IAM roles
+# DO NOT SET AWS CREDENTIALS STATICALY IN FILES !
 ENV AWS_ACCESS_KEY_ID=your-access-key
 ENV AWS_SECRET_ACCESS_KEY=your-secret-key
 ENV AWS_REGION=your-region
