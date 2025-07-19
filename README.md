@@ -1,6 +1,7 @@
 # Secretary
 
-Secretary is a lightweight utility that securely fetches secrets from AWS Secrets Manager and makes them available to your application as environment variables or files.
+Secretary is a lightweight utility that securely fetches secrets from AWS Secrets Manager and makes them available to
+your application as files.
 
 ## Features
 
@@ -27,7 +28,8 @@ go build -o secretary
 
 ## Usage
 
-Secretary acts as a wrapper for your application. It fetches secrets from AWS Secrets Manager and then runs your application with those secrets available.
+Secretary acts as a wrapper for your application. It fetches secrets from AWS Secrets Manager and then runs your
+application with those secrets available.
 
 ### Basic Usage
 
@@ -36,6 +38,7 @@ SECRETARY_DB_PASSWORD=arn:aws:secretsmanager:region:account:secret:db-password s
 ```
 
 In this example:
+
 - `SECRETARY_DB_PASSWORD` is an environment variable that tells Secretary to fetch a secret
 - The value `arn:aws:secretsmanager:region:account:secret:db-password` is the ARN of the secret in AWS Secrets Manager
 - `your-application [args...]` is the command to run after fetching the secrets
@@ -139,7 +142,8 @@ Secretary uses environment variables prefixed with `SECRETARY_` to determine whi
 
 - Format: `SECRETARY_SECRET_NAME=arn:aws:secretsmanager:region:account:secret:secret-name`
 - The secret will be stored in `/tmp/SECRET_NAME`
-- Your application can access it via the environment variable `SECRET_NAME` which will contain the path to the secret file
+- Your application can access it via the environment variable `SECRET_NAME` which will contain the path to the secret
+  file
 
 ## AWS Credentials
 
