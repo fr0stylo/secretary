@@ -18,6 +18,12 @@ your application as files.
 go install github.com/fr0stylo/secretary@latest
 ```
 
+### Using GitHub Container Registry
+
+```bash
+docker pull ghcr.io/fr0stylo/secretory:latest
+```
+
 ### From Source
 
 ```bash
@@ -45,6 +51,8 @@ In this example:
 
 ### Docker Example
 
+#### Building Your Own Image
+
 ```dockerfile
 FROM golang:1.24 AS builder
 WORKDIR /app
@@ -61,6 +69,32 @@ COPY your-application .
 # DO NOT SET AWS CREDENTIALS STATICALY IN FILES !
 ENV AWS_ACCESS_KEY_ID=your-access-key
 ENV AWS_SECRET_ACCESS_KEY=your-secret-key
+ENV AWS_REGION=your-region
+
+# Define secrets to fetch
+ENV SECRETARY_DB_PASSWORD=arn:aws:secretsmanager:region:account:secret:db-password
+ENV SECRETARY_API_KEY=arn:aws:secretsmanager:region:account:secret:api-key
+
+# Run your application with Secretary
+ENTRYPOINT ["./secretary", "./your-application"]
+```
+
+Run the Docker container:
+
+```bash
+docker build -t your-app .
+docker run your-app
+```
+
+#### Using Pre-built Image from GHCR
+
+```dockerfile
+FROM ghcr.io/fr0stylo/secretory:latest
+
+# Copy your application
+COPY your-application .
+
+# Set AWS credentials or use IAM roles
 ENV AWS_REGION=your-region
 
 # Define secrets to fetch
