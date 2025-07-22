@@ -2,75 +2,32 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"os/signal"
-	"strings"
 	"syscall"
-
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"time"
 )
 
 func main() {
 	ctx, _ := context.WithCancel(context.Background())
-	changeCh := make(chan string)
 
-	if err := fetchSecrets(ctx); err != nil {
+	sm, err := NewAwsSecretManager(ctx)
+	if err != nil {
 		log.Fatal(err)
 	}
+	sc := NewSecretRetriever(sm, WithFrequency(15*time.Second))
+	if err := sc.CreateSecretsFromEnvironment(ctx, os.Environ()); err != nil {
+		log.Fatal(err)
+	}
+
+	changeCh := sc.Run(ctx)
+	defer sc.Stop()
 
 	if err := runApplication(ctx, changeCh, os.Args[1:]); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func fetchSecrets(ctx context.Context) error {
-	cfg, err := config.LoadDefaultConfig(ctx)
-	if err != nil {
-		return err
-	}
-
-	sm := secretsmanager.NewFromConfig(cfg)
-
-	env := os.Environ()
-	for _, e := range env {
-		if !strings.HasPrefix(e, "SECRETARY_") {
-			continue
-		}
-		str := strings.SplitN(e, "=", 2)
-		if len(str) != 2 {
-			continue
-		}
-		secretName := strings.Trim(str[0], "SECRETARY_")
-		secretPath := fmt.Sprintf("/tmp/%s", secretName)
-		secretArn := str[1]
-		if !strings.HasPrefix(secretArn, "arn:aws:secretsmanager:") {
-			log.Printf("Skipping %s=%s, not an ARN", secretName, secretArn)
-		}
-
-		secret, err := sm.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
-			SecretId: &secretArn,
-		})
-		if err != nil {
-			return err
-		}
-		f, err := os.Create(secretPath)
-		if err != nil {
-			return err
-		}
-		_, err = f.Write([]byte(*secret.SecretString))
-		f.Close()
-
-		if err := os.Unsetenv(str[0]); err != nil {
-			return err
-		}
-		return os.Setenv(secretName, secretPath)
-	}
-
-	return nil
 }
 
 func runApplication(ctx context.Context, changeCh chan string, args []string) error {
