@@ -5,7 +5,7 @@ WORKDIR /app
 
 COPY go.mod ./
 COPY go.sum ./
-COPY secretary.go ./
+COPY *.go ./
 
 ENV CGO_ENABLED=0
 ENV GOOS=linux
