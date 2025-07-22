@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strings"
 	"time"
 )
@@ -42,6 +43,7 @@ func DefaultOpts() *SecretRetrieverConfig {
 
 type Secret struct {
 	Identifier string
+	EnvName    string
 	Version    string
 	Path       string
 }
@@ -88,7 +90,7 @@ func (r *SecretRetriever) Run(ctx context.Context) chan string {
 					}
 					log.Printf("Secret %s changed, recreating", secret.Identifier)
 					found = true
-					if err := r.CreateSecret(ctx, *secret); err != nil {
+					if err := r.CreateSecret(ctx, secret); err != nil {
 						log.Printf("Error creating secret: %s", err)
 						continue
 					}
@@ -122,8 +124,9 @@ func (r *SecretRetriever) CreateSecretsFromEnvironment(ctx context.Context, envS
 		secretPath := fmt.Sprintf("/tmp/%s", secretName)
 		secretIdentifier := str[1]
 
-		s := Secret{
+		s := &Secret{
 			Identifier: secretIdentifier,
+			EnvName:    secretName,
 			Version:    "",
 			Path:       secretPath,
 		}
@@ -137,13 +140,23 @@ func (r *SecretRetriever) CreateSecretsFromEnvironment(ctx context.Context, envS
 	return nil
 }
 
-func (r *SecretRetriever) CreateSecret(ctx context.Context, secret Secret) error {
+func (r *SecretRetriever) CreateSecret(ctx context.Context, secret *Secret) error {
 	version, err := r.client.GetSecretVersion(ctx, secret.Identifier)
 	if err != nil {
 		return err
 	}
 	secret.Version = version
-	r.pulledVersions = append(r.pulledVersions, &secret)
+	if !slices.ContainsFunc(r.pulledVersions, func(s *Secret) bool {
+		return s.Identifier == secret.Identifier
+	}) {
+		r.pulledVersions = append(r.pulledVersions, secret)
+	}
+	log.Printf(
+		"Creating secret %s (version %s) at %s",
+		secret.Identifier,
+		secret.Version,
+		secret.Path,
+	)
 
 	retrievedSecret, err := r.client.GetSecretValue(ctx, secret.Identifier)
 	if err != nil {
@@ -155,6 +168,9 @@ func (r *SecretRetriever) CreateSecret(ctx context.Context, secret Secret) error
 	}
 	defer f.Close()
 	_, err = f.Write(retrievedSecret)
+	if err != nil {
+		return err
+	}
 
-	return os.Setenv(secret.Identifier, secret.Path)
+	return os.Setenv(secret.EnvName, secret.Path)
 }
