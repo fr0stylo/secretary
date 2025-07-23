@@ -8,11 +8,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
-type AwsSecretManager struct {
+type SecretsManager struct {
 	client *secretsmanager.Client
 }
 
-func (a *AwsSecretManager) GetSecretValue(ctx context.Context, s string) ([]byte, error) {
+func (a *SecretsManager) GetSecretValue(ctx context.Context, s string) ([]byte, error) {
 	value, err := a.client.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
 		SecretId: &s,
 	})
@@ -22,7 +22,7 @@ func (a *AwsSecretManager) GetSecretValue(ctx context.Context, s string) ([]byte
 	return []byte(*value.SecretString), nil
 }
 
-func (a *AwsSecretManager) GetSecretVersion(ctx context.Context, s string) (string, error) {
+func (a *SecretsManager) GetSecretVersion(ctx context.Context, s string) (string, error) {
 	value, err := a.client.DescribeSecret(ctx, &secretsmanager.DescribeSecretInput{
 		SecretId: &s,
 	})
@@ -41,13 +41,13 @@ func (a *AwsSecretManager) GetSecretVersion(ctx context.Context, s string) (stri
 	return "", fmt.Errorf("no current version found")
 }
 
-func NewAwsSecretManager(ctx context.Context) (*AwsSecretManager, error) {
+func NewSecretsManager(ctx context.Context) (*SecretsManager, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return &AwsSecretManager{
+	return &SecretsManager{
 		client: secretsmanager.NewFromConfig(cfg),
 	}, nil
 }
