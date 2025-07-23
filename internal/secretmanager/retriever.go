@@ -8,7 +8,6 @@ import (
 	"os"
 	"slices"
 	"strings"
-	"time"
 )
 
 // Retriever manages the retrieval and monitoring of secrets.
@@ -29,52 +28,6 @@ func NewRetriever(client Client, opts ...ConfigOption) *Retriever {
 		client:         client,
 		config:         config,
 		pulledVersions: make([]*Secret, 0),
-	}
-}
-
-// Run starts the secret monitoring process and returns a channel that will receive
-// notifications when secrets change.
-func (r *Retriever) Run(ctx context.Context) chan string {
-	t := time.NewTicker(r.config.Frequency)
-	changeCh := make(chan string)
-	ctx, cancel := context.WithCancel(ctx)
-	r.runCancel = cancel
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-t.C:
-				found := false
-				for _, secret := range r.pulledVersions {
-					v, err := r.client.GetSecretVersion(ctx, secret.Identifier)
-					if err != nil {
-						log.Printf("Error retrieving secret version: %s", err)
-						continue
-					}
-					if v == secret.Version {
-						continue
-					}
-					log.Printf("Secret %s changed, recreating", secret.Identifier)
-					found = true
-					if err := r.CreateSecret(ctx, secret); err != nil {
-						log.Printf("Error creating secret: %s", err)
-						continue
-					}
-				}
-				if found {
-					changeCh <- time.Now().String()
-				}
-			}
-		}
-	}()
-	return changeCh
-}
-
-// Stop stops the secret monitoring process.
-func (r *Retriever) Stop() {
-	if r.runCancel != nil {
-		r.runCancel()
 	}
 }
 
@@ -111,7 +64,8 @@ func (r *Retriever) CreateSecretsFromEnvironment(ctx context.Context, envSecrets
 
 // CreateSecret creates a secret file and sets an environment variable pointing to it.
 func (r *Retriever) CreateSecret(ctx context.Context, secret *Secret) error {
-	version, err := r.client.GetSecretVersion(ctx, secret.Identifier)
+	tctx, _ := context.WithTimeout(ctx, r.config.Timeout)
+	version, err := r.client.GetSecretVersion(tctx, secret.Identifier)
 	if err != nil {
 		return err
 	}
@@ -128,7 +82,7 @@ func (r *Retriever) CreateSecret(ctx context.Context, secret *Secret) error {
 		secret.Path,
 	)
 
-	retrievedSecret, err := r.client.GetSecretValue(ctx, secret.Identifier)
+	retrievedSecret, err := r.client.GetSecretValue(tctx, secret.Identifier)
 	if err != nil {
 		return err
 	}

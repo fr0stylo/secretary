@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"os"
 	"os/exec"
@@ -11,26 +12,41 @@ import (
 	"time"
 
 	"github.com/fr0stylo/secretary/internal/providers/aws"
+	"github.com/fr0stylo/secretary/internal/providers/dummy"
 	"github.com/fr0stylo/secretary/internal/secretmanager"
 )
 
+var (
+	provider = flag.String("provider", "aws", "The secret provider to use")
+)
+
 func main() {
+	flag.Parse()
 	ctx, _ := context.WithCancel(context.Background())
 
-	sm, err := aws.NewSecretsManager(ctx)
-	if err != nil {
-		log.Fatal(err)
+	var client secretmanager.Client
+	switch *provider {
+	case "aws":
+		sm, err := aws.NewSecretsManager(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
+		client = sm
+	case "dummy":
+		client = dummy.NewSecretManager()
 	}
 
-	sc := secretmanager.NewRetriever(sm, secretmanager.WithFrequency(15*time.Second))
+	sc := secretmanager.NewRetriever(client, secretmanager.WithFrequency(15*time.Second))
 	if err := sc.CreateSecretsFromEnvironment(ctx, os.Environ()); err != nil {
 		log.Fatal(err)
 	}
 
-	changeCh := sc.Run(ctx)
-	defer sc.Stop()
+	watcher := secretmanager.NewWatcher(sc)
 
-	if err := runApplication(ctx, changeCh, os.Args[1:]); err != nil {
+	changeCh := watcher.Start(ctx)
+	defer watcher.Stop()
+
+	if err := runApplication(ctx, changeCh, flag.Args()); err != nil {
 		log.Fatal(err)
 	}
 }

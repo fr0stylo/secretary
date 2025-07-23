@@ -101,3 +101,5 @@ fabric.properties
 go.work
 
 .idea/
+
+bin/

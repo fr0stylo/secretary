@@ -9,14 +9,14 @@ import (
 
 // MockClient is a mock implementation of Client for testing
 type MockClient struct {
-	secretValues  map[string][]byte
+	secretValues   map[string][]byte
 	secretVersions map[string]string
 }
 
 // NewMockClient creates a new mock client with predefined values
 func NewMockClient() *MockClient {
 	return &MockClient{
-		secretValues:  make(map[string][]byte),
+		secretValues:   make(map[string][]byte),
 		secretVersions: make(map[string]string),
 	}
 }
