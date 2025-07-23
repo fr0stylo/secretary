@@ -11,6 +11,9 @@ import (
 	"time"
 )
 
+/*
+Runtime - Provides core logic for creating secrets from user defined secrets
+*/
 type Runtime struct {
 	client         providers.IProvider
 	config         *Options
@@ -18,6 +21,9 @@ type Runtime struct {
 	runCancel      context.CancelFunc
 }
 
+/*
+NewRuntime - Initializes a new Runtime structure with default values and returns a pointer to it
+*/
 func NewRuntime(client providers.IProvider, opts ...SecretRetrieverOpts) *Runtime {
 	config := DefaultOptions()
 	for _, opt := range opts {
@@ -30,6 +36,10 @@ func NewRuntime(client providers.IProvider, opts ...SecretRetrieverOpts) *Runtim
 	}
 }
 
+/*
+Run - Begins runtime execution and constantly watches for secret changes on a separate go-routine until its provided
+context has been cancelled
+*/
 func (r *Runtime) Run(ctx context.Context) chan string {
 	t := time.NewTicker(r.config.Frequency)
 	changeCh := make(chan string)
@@ -67,12 +77,19 @@ func (r *Runtime) Run(ctx context.Context) chan string {
 	return changeCh
 }
 
+/*
+Stop - Stop Secretary runtime execution
+*/
 func (r *Runtime) Stop() {
 	if r.runCancel != nil {
 		r.runCancel()
 	}
 }
 
+/*
+CreateSecretsFromEnvironment - Creates new mounted secret files for secrets declared in user defined environmental
+variables
+*/
 func (r *Runtime) CreateSecretsFromEnvironment(ctx context.Context, envSecrets []string) error {
 	for _, envSecret := range envSecrets {
 		if !strings.HasPrefix(envSecret, "SECRETARY_") {
@@ -103,6 +120,9 @@ func (r *Runtime) CreateSecretsFromEnvironment(ctx context.Context, envSecrets [
 	return nil
 }
 
+/*
+CreateSecret - Creates a new file within the path defined in the provided secret for the wrapped process to use
+*/
 func (r *Runtime) CreateSecret(ctx context.Context, secret *Secret) error {
 	version, err := r.client.GetSecretVersion(ctx, secret.Identifier)
 	if err != nil {
