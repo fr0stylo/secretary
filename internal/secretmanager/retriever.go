@@ -1,4 +1,5 @@
-package main
+// Package secretmanager provides interfaces and implementations for secret management.
+package secretmanager
 
 import (
 	"context"
@@ -10,65 +11,31 @@ import (
 	"time"
 )
 
-type SecretRetrieverClient interface {
-	GetSecretValue(context.Context, string) ([]byte, error)
-	GetSecretVersion(context.Context, string) (string, error)
-}
-
-type SecretRetrieverConfig struct {
-	frequency time.Duration
-	timeout   time.Duration
-}
-
-type SecretRetrieverOpts = func(*SecretRetrieverConfig)
-
-func WithFrequency(frequency time.Duration) SecretRetrieverOpts {
-	return func(config *SecretRetrieverConfig) {
-		config.frequency = frequency
-	}
-}
-
-func WithTimeout(timeout time.Duration) SecretRetrieverOpts {
-	return func(config *SecretRetrieverConfig) {
-		config.timeout = timeout
-	}
-}
-
-func DefaultOpts() *SecretRetrieverConfig {
-	return &SecretRetrieverConfig{
-		frequency: 15 * time.Second,
-		timeout:   10 * time.Second,
-	}
-}
-
-type Secret struct {
-	Identifier string
-	EnvName    string
-	Version    string
-	Path       string
-}
-
-type SecretRetriever struct {
-	client         SecretRetrieverClient
-	config         *SecretRetrieverConfig
+// Retriever manages the retrieval and monitoring of secrets.
+type Retriever struct {
+	client         Client
+	config         *Config
 	pulledVersions []*Secret
 	runCancel      context.CancelFunc
 }
 
-func NewSecretRetriever(client SecretRetrieverClient, opts ...SecretRetrieverOpts) *SecretRetriever {
-	config := DefaultOpts()
+// NewRetriever creates a new SecretRetriever with the given client and options.
+func NewRetriever(client Client, opts ...ConfigOption) *Retriever {
+	config := DefaultConfig()
 	for _, opt := range opts {
 		opt(config)
 	}
-	return &SecretRetriever{
+	return &Retriever{
 		client:         client,
 		config:         config,
 		pulledVersions: make([]*Secret, 0),
 	}
 }
 
-func (r *SecretRetriever) Run(ctx context.Context) chan string {
-	t := time.NewTicker(r.config.frequency)
+// Run starts the secret monitoring process and returns a channel that will receive
+// notifications when secrets change.
+func (r *Retriever) Run(ctx context.Context) chan string {
+	t := time.NewTicker(r.config.Frequency)
 	changeCh := make(chan string)
 	ctx, cancel := context.WithCancel(ctx)
 	r.runCancel = cancel
@@ -104,13 +71,15 @@ func (r *SecretRetriever) Run(ctx context.Context) chan string {
 	return changeCh
 }
 
-func (r *SecretRetriever) Stop() {
+// Stop stops the secret monitoring process.
+func (r *Retriever) Stop() {
 	if r.runCancel != nil {
 		r.runCancel()
 	}
 }
 
-func (r *SecretRetriever) CreateSecretsFromEnvironment(ctx context.Context, envSecrets []string) error {
+// CreateSecretsFromEnvironment creates secrets from environment variables with the SECRETARY_ prefix.
+func (r *Retriever) CreateSecretsFromEnvironment(ctx context.Context, envSecrets []string) error {
 	for _, envSecret := range envSecrets {
 		if !strings.HasPrefix(envSecret, "SECRETARY_") {
 			continue
@@ -140,7 +109,8 @@ func (r *SecretRetriever) CreateSecretsFromEnvironment(ctx context.Context, envS
 	return nil
 }
 
-func (r *SecretRetriever) CreateSecret(ctx context.Context, secret *Secret) error {
+// CreateSecret creates a secret file and sets an environment variable pointing to it.
+func (r *Retriever) CreateSecret(ctx context.Context, secret *Secret) error {
 	version, err := r.client.GetSecretVersion(ctx, secret.Identifier)
 	if err != nil {
 		return err

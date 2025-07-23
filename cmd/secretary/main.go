@@ -1,3 +1,4 @@
+// Package main provides the entry point for the secretary application.
 package main
 
 import (
@@ -8,16 +9,20 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/fr0stylo/secretary/internal/providers/aws"
+	"github.com/fr0stylo/secretary/internal/secretmanager"
 )
 
 func main() {
 	ctx, _ := context.WithCancel(context.Background())
 
-	sm, err := NewAwsSecretManager(ctx)
+	sm, err := aws.NewSecretsManager(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
-	sc := NewSecretRetriever(sm, WithFrequency(15*time.Second))
+
+	sc := secretmanager.NewRetriever(sm, secretmanager.WithFrequency(15*time.Second))
 	if err := sc.CreateSecretsFromEnvironment(ctx, os.Environ()); err != nil {
 		log.Fatal(err)
 	}

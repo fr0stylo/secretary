@@ -1,4 +1,4 @@
-package main
+package secretmanager
 
 import (
 	"context"
@@ -7,88 +7,88 @@ import (
 	"time"
 )
 
-// MockSecretRetrieverClient is a mock implementation of SecretRetrieverClient for testing
-type MockSecretRetrieverClient struct {
+// MockClient is a mock implementation of Client for testing
+type MockClient struct {
 	secretValues  map[string][]byte
 	secretVersions map[string]string
 }
 
-// NewMockSecretRetrieverClient creates a new mock client with predefined values
-func NewMockSecretRetrieverClient() *MockSecretRetrieverClient {
-	return &MockSecretRetrieverClient{
+// NewMockClient creates a new mock client with predefined values
+func NewMockClient() *MockClient {
+	return &MockClient{
 		secretValues:  make(map[string][]byte),
 		secretVersions: make(map[string]string),
 	}
 }
 
 // SetSecretValue sets a secret value for testing
-func (m *MockSecretRetrieverClient) SetSecretValue(id string, value []byte) {
+func (m *MockClient) SetSecretValue(id string, value []byte) {
 	m.secretValues[id] = value
 }
 
 // SetSecretVersion sets a secret version for testing
-func (m *MockSecretRetrieverClient) SetSecretVersion(id string, version string) {
+func (m *MockClient) SetSecretVersion(id string, version string) {
 	m.secretVersions[id] = version
 }
 
-// GetSecretValue implements SecretRetrieverClient.GetSecretValue
-func (m *MockSecretRetrieverClient) GetSecretValue(ctx context.Context, id string) ([]byte, error) {
+// GetSecretValue implements Client.GetSecretValue
+func (m *MockClient) GetSecretValue(ctx context.Context, id string) ([]byte, error) {
 	if value, ok := m.secretValues[id]; ok {
 		return value, nil
 	}
 	return nil, nil
 }
 
-// GetSecretVersion implements SecretRetrieverClient.GetSecretVersion
-func (m *MockSecretRetrieverClient) GetSecretVersion(ctx context.Context, id string) (string, error) {
+// GetSecretVersion implements Client.GetSecretVersion
+func (m *MockClient) GetSecretVersion(ctx context.Context, id string) (string, error) {
 	if version, ok := m.secretVersions[id]; ok {
 		return version, nil
 	}
 	return "default-version", nil
 }
 
-func TestDefaultOpts(t *testing.T) {
-	config := DefaultOpts()
+func TestDefaultConfig(t *testing.T) {
+	config := DefaultConfig()
 
-	if config.frequency != 15*time.Second {
-		t.Errorf("Expected default frequency to be 15s, got %v", config.frequency)
+	if config.Frequency != 15*time.Second {
+		t.Errorf("Expected default frequency to be 15s, got %v", config.Frequency)
 	}
 
-	if config.timeout != 10*time.Second {
-		t.Errorf("Expected default timeout to be 10s, got %v", config.timeout)
+	if config.Timeout != 10*time.Second {
+		t.Errorf("Expected default timeout to be 10s, got %v", config.Timeout)
 	}
 }
 
 func TestWithFrequency(t *testing.T) {
-	config := DefaultOpts()
+	config := DefaultConfig()
 	opt := WithFrequency(30 * time.Second)
 	opt(config)
 
-	if config.frequency != 30*time.Second {
-		t.Errorf("Expected frequency to be 30s, got %v", config.frequency)
+	if config.Frequency != 30*time.Second {
+		t.Errorf("Expected frequency to be 30s, got %v", config.Frequency)
 	}
 }
 
 func TestWithTimeout(t *testing.T) {
-	config := DefaultOpts()
+	config := DefaultConfig()
 	opt := WithTimeout(20 * time.Second)
 	opt(config)
 
-	if config.timeout != 20*time.Second {
-		t.Errorf("Expected timeout to be 20s, got %v", config.timeout)
+	if config.Timeout != 20*time.Second {
+		t.Errorf("Expected timeout to be 20s, got %v", config.Timeout)
 	}
 }
 
-func TestNewSecretRetriever(t *testing.T) {
-	client := NewMockSecretRetrieverClient()
-	retriever := NewSecretRetriever(client, WithFrequency(30*time.Second))
+func TestNewRetriever(t *testing.T) {
+	client := NewMockClient()
+	retriever := NewRetriever(client, WithFrequency(30*time.Second))
 
 	if retriever.client != client {
 		t.Error("Expected client to be set correctly")
 	}
 
-	if retriever.config.frequency != 30*time.Second {
-		t.Errorf("Expected frequency to be 30s, got %v", retriever.config.frequency)
+	if retriever.config.Frequency != 30*time.Second {
+		t.Errorf("Expected frequency to be 30s, got %v", retriever.config.Frequency)
 	}
 
 	if len(retriever.pulledVersions) != 0 {
@@ -98,19 +98,20 @@ func TestNewSecretRetriever(t *testing.T) {
 
 func TestCreateSecret(t *testing.T) {
 	// Setup
-	client := NewMockSecretRetrieverClient()
+	client := NewMockClient()
 	client.SetSecretValue("test-secret", []byte("secret-value"))
 	client.SetSecretVersion("test-secret", "v1")
 
-	retriever := NewSecretRetriever(client)
+	retriever := NewRetriever(client)
 
 	// Create a temporary file path
 	tempPath := "/tmp/test-secret"
 	defer os.Remove(tempPath)
 
 	// Test
-	secret := Secret{
+	secret := &Secret{
 		Identifier: "test-secret",
+		EnvName:    "test-secret",
 		Path:       tempPath,
 	}
 
@@ -147,11 +148,11 @@ func TestCreateSecret(t *testing.T) {
 
 func TestCreateSecretsFromEnvironment(t *testing.T) {
 	// Let's simplify this test and focus on just testing the CreateSecretsFromEnvironment method
-	client := NewMockSecretRetrieverClient()
+	client := NewMockClient()
 	client.SetSecretValue("aws/secret1", []byte("secret-value-1"))
 	client.SetSecretVersion("aws/secret1", "v1")
 
-	retriever := NewSecretRetriever(client)
+	retriever := NewRetriever(client)
 
 	// Clean up any existing files from previous test runs
 	os.Remove("/tmp/SECRET1")
@@ -205,11 +206,11 @@ func TestCreateSecretsFromEnvironment(t *testing.T) {
 
 func TestRunAndStop(t *testing.T) {
 	// Setup
-	client := NewMockSecretRetrieverClient()
+	client := NewMockClient()
 	client.SetSecretValue("test-secret", []byte("secret-value"))
 	client.SetSecretVersion("test-secret", "v1")
 
-	retriever := NewSecretRetriever(client, WithFrequency(100*time.Millisecond))
+	retriever := NewRetriever(client, WithFrequency(100*time.Millisecond))
 
 	// Create a secret
 	tempPath := "/tmp/run-test-secret"
@@ -217,6 +218,7 @@ func TestRunAndStop(t *testing.T) {
 
 	secret := Secret{
 		Identifier: "test-secret",
+		EnvName:    "test-secret",
 		Path:       tempPath,
 		Version:    "v1",
 	}
@@ -252,11 +254,11 @@ func TestRunAndStop(t *testing.T) {
 
 func TestSecretVersionChange(t *testing.T) {
 	// Setup
-	client := NewMockSecretRetrieverClient()
+	client := NewMockClient()
 	client.SetSecretValue("test-secret", []byte("secret-value"))
 	client.SetSecretVersion("test-secret", "v1")
 
-	retriever := NewSecretRetriever(client, WithFrequency(100*time.Millisecond))
+	retriever := NewRetriever(client, WithFrequency(100*time.Millisecond))
 
 	// Create a secret
 	tempPath := "/tmp/version-test-secret"
@@ -264,6 +266,7 @@ func TestSecretVersionChange(t *testing.T) {
 
 	secret := Secret{
 		Identifier: "test-secret",
+		EnvName:    "test-secret",
 		Path:       tempPath,
 		Version:    "v1",
 	}

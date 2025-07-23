@@ -3,12 +3,10 @@ LABEL authors="Zymantas Maumevicius"
 
 WORKDIR /app
 
-COPY go.mod ./
-COPY go.sum ./
-COPY *.go ./
+COPY . .
 
 ENV CGO_ENABLED=0
 ENV GOOS=linux
-RUN go build -o secretary -ldflags="-s -w" ./...
+RUN go build -o secretary -ldflags="-s -w" ./cmd/secretary
 
 ENTRYPOINT ["./secretary"]

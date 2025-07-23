@@ -18,7 +18,7 @@ GOGET=$(GO) get
 GOINSTALL=$(GO) install
 
 # Paths
-SRC_DIR=.
+SRC_DIR=./cmd/secretary
 BIN_DIR=./bin
 
 .PHONY: all build clean test lint install docker docker-push help
