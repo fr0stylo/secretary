@@ -87,40 +87,6 @@ func (r *Runtime) Stop() {
 }
 
 /*
-CreateSecretsFromEnvironment - Creates new mounted secret files for secrets declared in user defined environmental
-variables
-*/
-func (r *Runtime) CreateSecretsFromEnvironment(ctx context.Context, envSecrets []string) error {
-	for _, envSecret := range envSecrets {
-		if !strings.HasPrefix(envSecret, "SECRETARY_") {
-			continue
-		}
-		str := strings.SplitN(envSecret, "=", 2)
-		if len(str) != 2 {
-			log.Printf("invalid secret name: %s", envSecret)
-			continue
-		}
-		secretName := strings.TrimPrefix(str[0], "SECRETARY_")
-		secretPath := fmt.Sprintf("/tmp/%s", secretName)
-		secretIdentifier := str[1]
-
-		s := &Secret{
-			Identifier: secretIdentifier,
-			EnvName:    secretName,
-			Version:    "",
-			Path:       secretPath,
-		}
-		if err := r.CreateSecret(ctx, s); err != nil {
-			return err
-		}
-		if err := os.Unsetenv(str[0]); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-/*
 CreateSecret - Creates a new file within the path defined in the provided secret for the wrapped process to use
 */
 func (r *Runtime) CreateSecret(ctx context.Context, secret *Secret) error {
@@ -156,4 +122,38 @@ func (r *Runtime) CreateSecret(ctx context.Context, secret *Secret) error {
 	}
 
 	return os.Setenv(secret.EnvName, secret.Path)
+}
+
+/*
+CreateSecretsFromEnvironment - Creates new mounted secret files for secrets declared in user defined environmental
+variables
+*/
+func (r *Runtime) CreateSecretsFromEnvironment(ctx context.Context, envSecrets []string) error {
+	for _, envSecret := range envSecrets {
+		if !strings.HasPrefix(envSecret, "SECRETARY_") {
+			continue
+		}
+		str := strings.SplitN(envSecret, "=", 2)
+		if len(str) != 2 {
+			log.Printf("invalid secret name: %s", envSecret)
+			continue
+		}
+		secretName := strings.TrimPrefix(str[0], "SECRETARY_")
+		secretPath := fmt.Sprintf("/tmp/%s", secretName)
+		secretIdentifier := str[1]
+
+		s := &Secret{
+			Identifier: secretIdentifier,
+			EnvName:    secretName,
+			Version:    "",
+			Path:       secretPath,
+		}
+		if err := r.CreateSecret(ctx, s); err != nil {
+			return err
+		}
+		if err := os.Unsetenv(str[0]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
