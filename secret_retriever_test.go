@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/fr0stylo/secretary/runtime"
 	"os"
 	"testing"
 	"time"
@@ -9,14 +10,14 @@ import (
 
 // MockSecretRetrieverClient is a mock implementation of SecretRetrieverClient for testing
 type MockSecretRetrieverClient struct {
-	secretValues  map[string][]byte
+	secretValues   map[string][]byte
 	secretVersions map[string]string
 }
 
 // NewMockSecretRetrieverClient creates a new mock client with predefined values
 func NewMockSecretRetrieverClient() *MockSecretRetrieverClient {
 	return &MockSecretRetrieverClient{
-		secretValues:  make(map[string][]byte),
+		secretValues:   make(map[string][]byte),
 		secretVersions: make(map[string]string),
 	}
 }
@@ -48,51 +49,51 @@ func (m *MockSecretRetrieverClient) GetSecretVersion(ctx context.Context, id str
 }
 
 func TestDefaultOpts(t *testing.T) {
-	config := DefaultOpts()
+	config := runtime.DefaultOptions()
 
-	if config.frequency != 15*time.Second {
-		t.Errorf("Expected default frequency to be 15s, got %v", config.frequency)
+	if config.Frequency != 15*time.Second {
+		t.Errorf("Expected default frequency to be 15s, got %v", config.Frequency)
 	}
 
-	if config.timeout != 10*time.Second {
-		t.Errorf("Expected default timeout to be 10s, got %v", config.timeout)
+	if config.Timeout != 10*time.Second {
+		t.Errorf("Expected default timeout to be 10s, got %v", config.Timeout)
 	}
 }
 
 func TestWithFrequency(t *testing.T) {
-	config := DefaultOpts()
-	opt := WithFrequency(30 * time.Second)
+	config := runtime.DefaultOptions()
+	opt := runtime.WithFrequency(30 * time.Second)
 	opt(config)
 
-	if config.frequency != 30*time.Second {
-		t.Errorf("Expected frequency to be 30s, got %v", config.frequency)
+	if config.Frequency != 30*time.Second {
+		t.Errorf("Expected frequency to be 30s, got %v", config.Frequency)
 	}
 }
 
 func TestWithTimeout(t *testing.T) {
-	config := DefaultOpts()
-	opt := WithTimeout(20 * time.Second)
+	config := runtime.DefaultOptions()
+	opt := runtime.WithTimeout(20 * time.Second)
 	opt(config)
 
-	if config.timeout != 20*time.Second {
-		t.Errorf("Expected timeout to be 20s, got %v", config.timeout)
+	if config.Timeout != 20*time.Second {
+		t.Errorf("Expected timeout to be 20s, got %v", config.Timeout)
 	}
 }
 
 func TestNewSecretRetriever(t *testing.T) {
 	client := NewMockSecretRetrieverClient()
-	retriever := NewSecretRetriever(client, WithFrequency(30*time.Second))
+	retriever := runtime.NewRuntime(client, runtime.WithFrequency(30*time.Second))
 
-	if retriever.client != client {
+	if retriever.Client != client {
 		t.Error("Expected client to be set correctly")
 	}
 
-	if retriever.config.frequency != 30*time.Second {
-		t.Errorf("Expected frequency to be 30s, got %v", retriever.config.frequency)
+	if retriever.Config.Frequency != 30*time.Second {
+		t.Errorf("Expected frequency to be 30s, got %v", retriever.Config.Frequency)
 	}
 
-	if len(retriever.pulledVersions) != 0 {
-		t.Errorf("Expected pulledVersions to be empty, got %v", retriever.pulledVersions)
+	if len(retriever.PulledVersions) != 0 {
+		t.Errorf("Expected PulledVersions to be empty, got %v", retriever.PulledVersions)
 	}
 }
 
@@ -102,14 +103,14 @@ func TestCreateSecret(t *testing.T) {
 	client.SetSecretValue("test-secret", []byte("secret-value"))
 	client.SetSecretVersion("test-secret", "v1")
 
-	retriever := NewSecretRetriever(client)
+	retriever := runtime.NewRuntime(client)
 
 	// Create a temporary file path
 	tempPath := "/tmp/test-secret"
 	defer os.Remove(tempPath)
 
 	// Test
-	secret := Secret{
+	secret := &runtime.Secret{
 		Identifier: "test-secret",
 		Path:       tempPath,
 	}
@@ -119,13 +120,13 @@ func TestCreateSecret(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
-	// Verify the secret was added to pulledVersions
-	if len(retriever.pulledVersions) != 1 {
-		t.Errorf("Expected 1 secret in pulledVersions, got %d", len(retriever.pulledVersions))
+	// Verify the secret was added to PulledVersions
+	if len(retriever.PulledVersions) != 1 {
+		t.Errorf("Expected 1 secret in PulledVersions, got %d", len(retriever.PulledVersions))
 	}
 
-	if retriever.pulledVersions[0].Version != "v1" {
-		t.Errorf("Expected version to be v1, got %s", retriever.pulledVersions[0].Version)
+	if retriever.PulledVersions[0].Version != "v1" {
+		t.Errorf("Expected version to be v1, got %s", retriever.PulledVersions[0].Version)
 	}
 
 	// Verify the file was created
@@ -151,7 +152,7 @@ func TestCreateSecretsFromEnvironment(t *testing.T) {
 	client.SetSecretValue("aws/secret1", []byte("secret-value-1"))
 	client.SetSecretVersion("aws/secret1", "v1")
 
-	retriever := NewSecretRetriever(client)
+	retriever := runtime.NewRuntime(client)
 
 	// Clean up any existing files from previous test runs
 	os.Remove("/tmp/SECRET1")
@@ -171,12 +172,12 @@ func TestCreateSecretsFromEnvironment(t *testing.T) {
 		t.Fatalf("CreateSecretsFromEnvironment failed: %v", err)
 	}
 
-	// Verify the secret was added to pulledVersions
-	t.Logf("pulledVersions: %+v", retriever.pulledVersions)
-	if len(retriever.pulledVersions) != 1 {
-		t.Errorf("Expected 1 secret in pulledVersions, got %d", len(retriever.pulledVersions))
+	// Verify the secret was added to PulledVersions
+	t.Logf("PulledVersions: %+v", retriever.PulledVersions)
+	if len(retriever.PulledVersions) != 1 {
+		t.Errorf("Expected 1 secret in PulledVersions, got %d", len(retriever.PulledVersions))
 	} else {
-		t.Logf("Secret added to pulledVersions: %+v", retriever.pulledVersions[0])
+		t.Logf("Secret added to PulledVersions: %+v", retriever.PulledVersions[0])
 	}
 
 	// List all files in /tmp to debug
@@ -209,35 +210,35 @@ func TestRunAndStop(t *testing.T) {
 	client.SetSecretValue("test-secret", []byte("secret-value"))
 	client.SetSecretVersion("test-secret", "v1")
 
-	retriever := NewSecretRetriever(client, WithFrequency(100*time.Millisecond))
+	retriever := runtime.NewRuntime(client, runtime.WithFrequency(100*time.Millisecond))
 
 	// Create a secret
 	tempPath := "/tmp/run-test-secret"
 	defer os.Remove(tempPath)
 
-	secret := Secret{
+	secret := runtime.Secret{
 		Identifier: "test-secret",
 		Path:       tempPath,
 		Version:    "v1",
 	}
 
-	// Add the secret to pulledVersions
-	retriever.pulledVersions = append(retriever.pulledVersions, &secret)
+	// Add the secret to PulledVersions
+	retriever.PulledVersions = append(retriever.PulledVersions, &secret)
 
 	// Run the retriever
 	ctx := context.Background()
-	changeCh := retriever.Run(ctx)
+	changeCh := retriever.WatchChanges(ctx)
 
 	// Verify the retriever is running
-	if retriever.runCancel == nil {
+	if retriever.RunCancel == nil {
 		t.Error("Expected runCancel to be set")
 	}
 
 	// Stop the retriever
-	retriever.Stop()
+	retriever.StopWatchChanges()
 
 	// Verify no panics when stopping again
-	retriever.Stop()
+	retriever.StopWatchChanges()
 
 	// Verify the channel is closed or at least not receiving updates
 	select {
@@ -256,26 +257,26 @@ func TestSecretVersionChange(t *testing.T) {
 	client.SetSecretValue("test-secret", []byte("secret-value"))
 	client.SetSecretVersion("test-secret", "v1")
 
-	retriever := NewSecretRetriever(client, WithFrequency(100*time.Millisecond))
+	retriever := runtime.NewRuntime(client, runtime.WithFrequency(100*time.Millisecond))
 
 	// Create a secret
 	tempPath := "/tmp/version-test-secret"
 	defer os.Remove(tempPath)
 
-	secret := Secret{
+	secret := runtime.Secret{
 		Identifier: "test-secret",
 		Path:       tempPath,
 		Version:    "v1",
 	}
 
-	// Add the secret to pulledVersions
-	retriever.pulledVersions = append(retriever.pulledVersions, &secret)
+	// Add the secret to PulledVersions
+	retriever.PulledVersions = append(retriever.PulledVersions, &secret)
 
 	// Run the retriever
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	changeCh := retriever.Run(ctx)
+	changeCh := retriever.WatchChanges(ctx)
 
 	// Wait a bit to ensure the ticker has run at least once
 	time.Sleep(150 * time.Millisecond)
@@ -292,5 +293,5 @@ func TestSecretVersionChange(t *testing.T) {
 	}
 
 	// Stop the retriever
-	retriever.Stop()
+	retriever.StopWatchChanges()
 }
