@@ -6,8 +6,11 @@ import (
 	"github.com/fr0stylo/secretary/providers"
 	"log"
 	"os"
+	"os/exec"
+	"os/signal"
 	"slices"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -156,4 +159,47 @@ func (r *Runtime) CreateSecretsFromEnvironment(ctx context.Context, envSecrets [
 		}
 	}
 	return nil
+}
+
+/*
+ExecuteProgram - Begins execution of the user provided program and passes signals from secretary to the wrapped
+process
+*/
+func (r *Runtime) ExecuteProgram(ctx context.Context, changeCh chan string, args []string) error {
+	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
+
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	complete := make(chan error)
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
+
+	go func() {
+		complete <- cmd.Wait()
+	}()
+
+	for {
+		select {
+		case change := <-changeCh:
+			log.Printf("Change detected: %s, Sending SIGHUP to %d", change, cmd.Process.Pid)
+			if err := cmd.Process.Signal(syscall.SIGHUP); err != nil {
+				return err
+			}
+		case <-signalCh:
+			log.Printf("Received signal, sending SIGKILL to %d", cmd.Process.Pid)
+			if err := cmd.Process.Signal(syscall.SIGKILL); err != nil {
+				return err
+			}
+			return nil
+		case err := <-complete:
+			return err
+		}
+	}
 }
