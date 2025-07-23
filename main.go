@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/fr0stylo/secretary/providers/aws"
+	"github.com/fr0stylo/secretary/runtime"
 	"log"
 	"os"
 	"os/exec"
@@ -18,7 +19,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	sc := NewSecretRetriever(sm, WithFrequency(15*time.Second))
+	sc := NewSecretRetriever(sm, runtime.WithFrequency(15*time.Second))
 	if err := sc.CreateSecretsFromEnvironment(ctx, os.Environ()); err != nil {
 		log.Fatal(err)
 	}

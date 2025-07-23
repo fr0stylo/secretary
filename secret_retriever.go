@@ -4,38 +4,13 @@ import (
 	"context"
 	"fmt"
 	"github.com/fr0stylo/secretary/providers"
+	"github.com/fr0stylo/secretary/runtime"
 	"log"
 	"os"
 	"slices"
 	"strings"
 	"time"
 )
-
-type SecretRetrieverConfig struct {
-	frequency time.Duration
-	timeout   time.Duration
-}
-
-type SecretRetrieverOpts = func(*SecretRetrieverConfig)
-
-func WithFrequency(frequency time.Duration) SecretRetrieverOpts {
-	return func(config *SecretRetrieverConfig) {
-		config.frequency = frequency
-	}
-}
-
-func WithTimeout(timeout time.Duration) SecretRetrieverOpts {
-	return func(config *SecretRetrieverConfig) {
-		config.timeout = timeout
-	}
-}
-
-func DefaultOpts() *SecretRetrieverConfig {
-	return &SecretRetrieverConfig{
-		frequency: 15 * time.Second,
-		timeout:   10 * time.Second,
-	}
-}
 
 type Secret struct {
 	Identifier string
@@ -46,13 +21,13 @@ type Secret struct {
 
 type SecretRetriever struct {
 	client         providers.IProvider
-	config         *SecretRetrieverConfig
+	config         *runtime.Options
 	pulledVersions []*Secret
 	runCancel      context.CancelFunc
 }
 
-func NewSecretRetriever(client providers.IProvider, opts ...SecretRetrieverOpts) *SecretRetriever {
-	config := DefaultOpts()
+func NewSecretRetriever(client providers.IProvider, opts ...runtime.SecretRetrieverOpts) *SecretRetriever {
+	config := runtime.DefaultOptions()
 	for _, opt := range opts {
 		opt(config)
 	}
@@ -64,7 +39,7 @@ func NewSecretRetriever(client providers.IProvider, opts ...SecretRetrieverOpts)
 }
 
 func (r *SecretRetriever) Run(ctx context.Context) chan string {
-	t := time.NewTicker(r.config.frequency)
+	t := time.NewTicker(r.config.Frequency)
 	changeCh := make(chan string)
 	ctx, cancel := context.WithCancel(ctx)
 	r.runCancel = cancel
