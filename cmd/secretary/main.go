@@ -17,7 +17,10 @@ import (
 )
 
 var (
-	provider = flag.String("provider", "aws", "The secret provider to use")
+	provider  = flag.String("provider", "aws", "The secret provider to use")
+	path      = flag.String("path", "/tmp", "The secret path to store secrets")
+	frequency = flag.Duration("frequency", 15*time.Second, "The frequency to check for secret changes")
+	timeout   = flag.Duration("timeout", 10*time.Second, "The timeout for secret retrieval operations")
 )
 
 func main() {
@@ -36,13 +39,16 @@ func main() {
 		client = dummy.NewSecretManager()
 	}
 
-	sc := secretmanager.NewRetriever(client, secretmanager.WithFrequency(15*time.Second))
+	sc := secretmanager.NewRetriever(client,
+		secretmanager.WithFrequency(*frequency),
+		secretmanager.WithTimeout(*timeout),
+		secretmanager.WithPath(*path))
 	if err := sc.CreateSecretsFromEnvironment(ctx, os.Environ()); err != nil {
 		log.Fatal(err)
 	}
+	defer sc.Clean()
 
 	watcher := secretmanager.NewWatcher(sc)
-
 	changeCh := watcher.Start(ctx)
 	defer watcher.Stop()
 
@@ -65,7 +71,7 @@ func runApplication(ctx context.Context, changeCh chan string, args []string) er
 
 	complete := make(chan error)
 	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGINT)
+	signal.Notify(signalCh, syscall.SIGTERM, syscall.SIGINT)
 
 	go func() {
 		complete <- cmd.Wait()

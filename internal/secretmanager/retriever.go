@@ -3,9 +3,9 @@ package secretmanager
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
+	"path"
 	"slices"
 	"strings"
 )
@@ -43,7 +43,7 @@ func (r *Retriever) CreateSecretsFromEnvironment(ctx context.Context, envSecrets
 			continue
 		}
 		secretName := strings.TrimPrefix(str[0], "SECRETARY_")
-		secretPath := fmt.Sprintf("/tmp/%s", secretName)
+		secretPath := path.Join(r.config.Path, secretName)
 		secretIdentifier := str[1]
 
 		s := &Secret{
@@ -62,9 +62,22 @@ func (r *Retriever) CreateSecretsFromEnvironment(ctx context.Context, envSecrets
 	return nil
 }
 
+func (r *Retriever) Clean() error {
+	for _, secret := range r.pulledVersions {
+		if err := os.Remove(secret.Path); err != nil {
+			log.Printf("error removing secret file %s: %v", secret.Path, err)
+		}
+		if err := os.Unsetenv(secret.EnvName); err != nil {
+			log.Printf("error unsetting environment variable %s: %v", secret.EnvName, err)
+		}
+	}
+	return nil
+}
+
 // CreateSecret creates a secret file and sets an environment variable pointing to it.
 func (r *Retriever) CreateSecret(ctx context.Context, secret *Secret) error {
-	tctx, _ := context.WithTimeout(ctx, r.config.Timeout)
+	tctx, cancel := context.WithTimeout(ctx, r.config.Timeout)
+	defer cancel()
 	version, err := r.client.GetSecretVersion(tctx, secret.Identifier)
 	if err != nil {
 		return err

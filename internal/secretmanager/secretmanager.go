@@ -19,6 +19,7 @@ type Client interface {
 type Config struct {
 	Frequency time.Duration
 	Timeout   time.Duration
+	Path      string
 }
 
 // ConfigOption is a function that modifies Config.
@@ -38,11 +39,18 @@ func WithTimeout(timeout time.Duration) ConfigOption {
 	}
 }
 
+func WithPath(path string) ConfigOption {
+	return func(config *Config) {
+		config.Path = path
+	}
+}
+
 // DefaultConfig returns a Config with default values.
 func DefaultConfig() *Config {
 	return &Config{
 		Frequency: 15 * time.Second,
 		Timeout:   10 * time.Second,
+		Path:      "/tmp",
 	}
 }
 
