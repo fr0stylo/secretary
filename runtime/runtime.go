@@ -18,10 +18,10 @@ import (
 Runtime - Provides core logic for creating secrets from user defined secrets
 */
 type Runtime struct {
-	client         providers.IProvider
-	config         *Options
-	pulledVersions []*Secret
-	runCancel      context.CancelFunc
+	Client         providers.IProvider
+	Config         *Options
+	PulledVersions []*Secret
+	RunCancel      context.CancelFunc
 }
 
 /*
@@ -33,9 +33,9 @@ func NewRuntime(client providers.IProvider, opts ...SecretRetrieverOpts) *Runtim
 		opt(config)
 	}
 	return &Runtime{
-		client:         client,
-		config:         config,
-		pulledVersions: make([]*Secret, 0),
+		Client:         client,
+		Config:         config,
+		PulledVersions: make([]*Secret, 0),
 	}
 }
 
@@ -44,10 +44,10 @@ WatchChanges - Starts a go-routine that constantly watches for changes to the us
 found then they are created
 */
 func (r *Runtime) WatchChanges(ctx context.Context) chan string {
-	t := time.NewTicker(r.config.Frequency)
+	t := time.NewTicker(r.Config.Frequency)
 	changeCh := make(chan string)
 	ctx, cancel := context.WithCancel(ctx)
-	r.runCancel = cancel
+	r.RunCancel = cancel
 	go func() {
 		for {
 			select {
@@ -55,8 +55,8 @@ func (r *Runtime) WatchChanges(ctx context.Context) chan string {
 				return
 			case <-t.C:
 				found := false
-				for _, secret := range r.pulledVersions {
-					v, err := r.client.GetSecretVersion(ctx, secret.Identifier)
+				for _, secret := range r.PulledVersions {
+					v, err := r.Client.GetSecretVersion(ctx, secret.Identifier)
 					if err != nil {
 						log.Printf("Error retrieving secret version: %s", err)
 						continue
@@ -84,8 +84,8 @@ func (r *Runtime) WatchChanges(ctx context.Context) chan string {
 StopWatchChanges - Stops the go-routine from watching for new secret changes
 */
 func (r *Runtime) StopWatchChanges() {
-	if r.runCancel != nil {
-		r.runCancel()
+	if r.RunCancel != nil {
+		r.RunCancel()
 	}
 }
 
@@ -93,15 +93,15 @@ func (r *Runtime) StopWatchChanges() {
 CreateSecret - Creates a new file within the path defined in the provided secret for the wrapped process to use
 */
 func (r *Runtime) CreateSecret(ctx context.Context, secret *Secret) error {
-	version, err := r.client.GetSecretVersion(ctx, secret.Identifier)
+	version, err := r.Client.GetSecretVersion(ctx, secret.Identifier)
 	if err != nil {
 		return err
 	}
 	secret.Version = version
-	if !slices.ContainsFunc(r.pulledVersions, func(s *Secret) bool {
+	if !slices.ContainsFunc(r.PulledVersions, func(s *Secret) bool {
 		return s.Identifier == secret.Identifier
 	}) {
-		r.pulledVersions = append(r.pulledVersions, secret)
+		r.PulledVersions = append(r.PulledVersions, secret)
 	}
 	log.Printf(
 		"Creating secret %s (version %s) at %s",
@@ -110,7 +110,7 @@ func (r *Runtime) CreateSecret(ctx context.Context, secret *Secret) error {
 		secret.Path,
 	)
 
-	retrievedSecret, err := r.client.GetSecretValue(ctx, secret.Identifier)
+	retrievedSecret, err := r.Client.GetSecretValue(ctx, secret.Identifier)
 	if err != nil {
 		return err
 	}
