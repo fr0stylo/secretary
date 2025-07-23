@@ -37,10 +37,10 @@ func NewRuntime(client providers.IProvider, opts ...SecretRetrieverOpts) *Runtim
 }
 
 /*
-Run - Begins runtime execution and constantly watches for secret changes on a separate go-routine until its provided
-context has been cancelled
+WatchChanges - Starts a go-routine that constantly watches for changes to the user provided secret, and if changes are
+found then they are created
 */
-func (r *Runtime) Run(ctx context.Context) chan string {
+func (r *Runtime) WatchChanges(ctx context.Context) chan string {
 	t := time.NewTicker(r.config.Frequency)
 	changeCh := make(chan string)
 	ctx, cancel := context.WithCancel(ctx)
@@ -78,9 +78,9 @@ func (r *Runtime) Run(ctx context.Context) chan string {
 }
 
 /*
-Stop - Stop Secretary runtime execution
+StopWatchChanges - Stops the go-routine from watching for new secret changes
 */
-func (r *Runtime) Stop() {
+func (r *Runtime) StopWatchChanges() {
 	if r.runCancel != nil {
 		r.runCancel()
 	}

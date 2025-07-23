@@ -29,8 +29,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	changeCh := sc.Run(ctx)
-	defer sc.Stop()
+	changeCh := sc.WatchChanges(ctx)
+	defer sc.StopWatchChanges()
 
 	if err := runApplication(ctx, changeCh, os.Args[1:]); err != nil {
 		log.Fatal(err)
