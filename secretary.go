@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/fr0stylo/secretary/providers/aws"
 	"log"
 	"os"
 	"os/exec"
@@ -13,7 +14,7 @@ import (
 func main() {
 	ctx, _ := context.WithCancel(context.Background())
 
-	sm, err := NewAwsSecretManager(ctx)
+	sm, err := aws.NewAwsSecretManager(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
