@@ -13,6 +13,11 @@ import (
 )
 
 func main() {
+	if len(os.Args) == 1 {
+		log.Printf("Missing program to execute. Provide this in the first argument")
+		os.Exit(1)
+	}
+
 	ctx, _ := context.WithCancel(context.Background())
 
 	sm, err := aws.NewSecretsManager(ctx)
