@@ -1,8 +1,7 @@
-package main
+package runtime
 
 import (
 	"context"
-	"github.com/fr0stylo/secretary/runtime"
 	"os"
 	"testing"
 	"time"
@@ -49,7 +48,7 @@ func (m *MockSecretRetrieverClient) GetSecretVersion(ctx context.Context, id str
 }
 
 func TestDefaultOpts(t *testing.T) {
-	config := runtime.DefaultOptions()
+	config := DefaultOptions()
 
 	if config.Frequency != 15*time.Second {
 		t.Errorf("Expected default frequency to be 15s, got %v", config.Frequency)
@@ -61,8 +60,8 @@ func TestDefaultOpts(t *testing.T) {
 }
 
 func TestWithFrequency(t *testing.T) {
-	config := runtime.DefaultOptions()
-	opt := runtime.WithFrequency(30 * time.Second)
+	config := DefaultOptions()
+	opt := WithFrequency(30 * time.Second)
 	opt(config)
 
 	if config.Frequency != 30*time.Second {
@@ -71,8 +70,8 @@ func TestWithFrequency(t *testing.T) {
 }
 
 func TestWithTimeout(t *testing.T) {
-	config := runtime.DefaultOptions()
-	opt := runtime.WithTimeout(20 * time.Second)
+	config := DefaultOptions()
+	opt := WithTimeout(20 * time.Second)
 	opt(config)
 
 	if config.Timeout != 20*time.Second {
@@ -82,7 +81,7 @@ func TestWithTimeout(t *testing.T) {
 
 func TestNewSecretRetriever(t *testing.T) {
 	client := NewMockSecretRetrieverClient()
-	retriever := runtime.NewRuntime(client, runtime.WithFrequency(30*time.Second))
+	retriever := NewRuntime(client, WithFrequency(30*time.Second))
 
 	if retriever.Client != client {
 		t.Error("Expected client to be set correctly")
@@ -103,14 +102,14 @@ func TestCreateSecret(t *testing.T) {
 	client.SetSecretValue("test-secret", []byte("secret-value"))
 	client.SetSecretVersion("test-secret", "v1")
 
-	retriever := runtime.NewRuntime(client)
+	retriever := NewRuntime(client)
 
 	// Create a temporary file path
 	tempPath := "/tmp/test-secret"
 	defer os.Remove(tempPath)
 
 	// Test
-	secret := &runtime.Secret{
+	secret := &Secret{
 		Identifier: "test-secret",
 		Path:       tempPath,
 	}
@@ -152,7 +151,7 @@ func TestCreateSecretsFromEnvironment(t *testing.T) {
 	client.SetSecretValue("aws/secret1", []byte("secret-value-1"))
 	client.SetSecretVersion("aws/secret1", "v1")
 
-	retriever := runtime.NewRuntime(client)
+	retriever := NewRuntime(client)
 
 	// Clean up any existing files from previous test runs
 	os.Remove("/tmp/SECRET1")
@@ -210,13 +209,13 @@ func TestRunAndStop(t *testing.T) {
 	client.SetSecretValue("test-secret", []byte("secret-value"))
 	client.SetSecretVersion("test-secret", "v1")
 
-	retriever := runtime.NewRuntime(client, runtime.WithFrequency(100*time.Millisecond))
+	retriever := NewRuntime(client, WithFrequency(100*time.Millisecond))
 
 	// Create a secret
 	tempPath := "/tmp/run-test-secret"
 	defer os.Remove(tempPath)
 
-	secret := runtime.Secret{
+	secret := Secret{
 		Identifier: "test-secret",
 		Path:       tempPath,
 		Version:    "v1",
@@ -257,13 +256,13 @@ func TestSecretVersionChange(t *testing.T) {
 	client.SetSecretValue("test-secret", []byte("secret-value"))
 	client.SetSecretVersion("test-secret", "v1")
 
-	retriever := runtime.NewRuntime(client, runtime.WithFrequency(100*time.Millisecond))
+	retriever := NewRuntime(client, WithFrequency(100*time.Millisecond))
 
 	// Create a secret
 	tempPath := "/tmp/version-test-secret"
 	defer os.Remove(tempPath)
 
-	secret := runtime.Secret{
+	secret := Secret{
 		Identifier: "test-secret",
 		Path:       tempPath,
 		Version:    "v1",
