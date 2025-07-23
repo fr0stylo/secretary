@@ -19,7 +19,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	sc := NewSecretRetriever(sm, runtime.WithFrequency(15*time.Second))
+	sc := runtime.NewRuntime(sm, runtime.WithFrequency(15*time.Second))
 	if err := sc.CreateSecretsFromEnvironment(ctx, os.Environ()); err != nil {
 		log.Fatal(err)
 	}

@@ -18,7 +18,7 @@ type Runtime struct {
 	runCancel      context.CancelFunc
 }
 
-func NewSecretRetriever(client providers.IProvider, opts ...SecretRetrieverOpts) *Runtime {
+func NewRuntime(client providers.IProvider, opts ...SecretRetrieverOpts) *Runtime {
 	config := DefaultOptions()
 	for _, opt := range opts {
 		opt(config)
