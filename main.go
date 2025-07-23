@@ -14,7 +14,7 @@ import (
 func main() {
 	ctx, _ := context.WithCancel(context.Background())
 
-	sm, err := aws.NewAwsSecretManager(ctx)
+	sm, err := aws.NewSecretsManager(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
