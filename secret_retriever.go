@@ -3,17 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/fr0stylo/secretary/providers"
 	"log"
 	"os"
 	"slices"
 	"strings"
 	"time"
 )
-
-type SecretRetrieverClient interface {
-	GetSecretValue(context.Context, string) ([]byte, error)
-	GetSecretVersion(context.Context, string) (string, error)
-}
 
 type SecretRetrieverConfig struct {
 	frequency time.Duration
@@ -49,13 +45,13 @@ type Secret struct {
 }
 
 type SecretRetriever struct {
-	client         SecretRetrieverClient
+	client         providers.IProvider
 	config         *SecretRetrieverConfig
 	pulledVersions []*Secret
 	runCancel      context.CancelFunc
 }
 
-func NewSecretRetriever(client SecretRetrieverClient, opts ...SecretRetrieverOpts) *SecretRetriever {
+func NewSecretRetriever(client providers.IProvider, opts ...SecretRetrieverOpts) *SecretRetriever {
 	config := DefaultOpts()
 	for _, opt := range opts {
 		opt(config)
