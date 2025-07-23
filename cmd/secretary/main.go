@@ -25,12 +25,19 @@ var (
 
 func main() {
 	flag.Parse()
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	var client secretmanager.Client
 	switch *provider {
 	case "aws":
 		sm, err := aws.NewSecretsManager(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
+		client = sm
+	case "awsssm":
+		sm, err := aws.NewSSM(ctx)
 		if err != nil {
 			log.Fatal(err)
 		}
