@@ -11,26 +11,26 @@ import (
 	"time"
 )
 
-type SecretRetriever struct {
+type Runtime struct {
 	client         providers.IProvider
 	config         *Options
 	pulledVersions []*Secret
 	runCancel      context.CancelFunc
 }
 
-func NewSecretRetriever(client providers.IProvider, opts ...SecretRetrieverOpts) *SecretRetriever {
+func NewSecretRetriever(client providers.IProvider, opts ...SecretRetrieverOpts) *Runtime {
 	config := DefaultOptions()
 	for _, opt := range opts {
 		opt(config)
 	}
-	return &SecretRetriever{
+	return &Runtime{
 		client:         client,
 		config:         config,
 		pulledVersions: make([]*Secret, 0),
 	}
 }
 
-func (r *SecretRetriever) Run(ctx context.Context) chan string {
+func (r *Runtime) Run(ctx context.Context) chan string {
 	t := time.NewTicker(r.config.Frequency)
 	changeCh := make(chan string)
 	ctx, cancel := context.WithCancel(ctx)
@@ -67,13 +67,13 @@ func (r *SecretRetriever) Run(ctx context.Context) chan string {
 	return changeCh
 }
 
-func (r *SecretRetriever) Stop() {
+func (r *Runtime) Stop() {
 	if r.runCancel != nil {
 		r.runCancel()
 	}
 }
 
-func (r *SecretRetriever) CreateSecretsFromEnvironment(ctx context.Context, envSecrets []string) error {
+func (r *Runtime) CreateSecretsFromEnvironment(ctx context.Context, envSecrets []string) error {
 	for _, envSecret := range envSecrets {
 		if !strings.HasPrefix(envSecret, "SECRETARY_") {
 			continue
@@ -103,7 +103,7 @@ func (r *SecretRetriever) CreateSecretsFromEnvironment(ctx context.Context, envS
 	return nil
 }
 
-func (r *SecretRetriever) CreateSecret(ctx context.Context, secret *Secret) error {
+func (r *Runtime) CreateSecret(ctx context.Context, secret *Secret) error {
 	version, err := r.client.GetSecretVersion(ctx, secret.Identifier)
 	if err != nil {
 		return err
