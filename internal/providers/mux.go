@@ -47,7 +47,7 @@ func (m *Mux) resolveProvider(id string) (secretmanager.Client, error) {
 		})
 	case "secretsmanager":
 		return m.withCache("secretsmanager", func() (secretmanager.Client, error) {
-			return aws.NewSSM(context.Background())
+			return aws.NewSecretsManager(context.Background())
 		})
 	}
 
