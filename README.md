@@ -1,5 +1,7 @@
 # Secretary
 
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/fr0stylo/secretary?utm_source=oss&utm_medium=github&utm_campaign=fr0stylo%2Fsecretary&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+
 Secretary is a lightweight utility that securely fetches secrets from multiple secret management providers and makes them available to your application as files. Currently supports AWS Secrets Manager with upcoming support for AWS Systems Manager Parameter Store, Google Cloud Secret Manager, and HashiCorp Vault.
 
 ## Features
