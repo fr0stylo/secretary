@@ -7,8 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
-
-	"github.com/fr0stylo/secretary/internal/secretmanager"
 )
 
 // SecretsManager implements the secretmanager.Client interface for AWS Secrets Manager.
@@ -57,6 +55,3 @@ func NewSecretsManager(ctx context.Context) (*SecretsManager, error) {
 		client: secretsmanager.NewFromConfig(cfg),
 	}, nil
 }
-
-// ensure SecretsManager implements secretmanager.Client
-var _ secretmanager.Client = (*SecretsManager)(nil)

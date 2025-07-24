@@ -1,3 +1,4 @@
+// Package aws provides AWS-specific implementations of secret management interfaces.
 package aws
 
 import (
@@ -8,10 +9,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
+// Ssm implements the secretmanager.Client interface for AWS Systems Manager Parameter Store.
 type Ssm struct {
 	client *ssm.Client
 }
 
+// GetSecretValue retrieves the value of a secret from AWS Systems Manager Parameter Store.
+// It takes a context and a parameter ID, and returns the parameter value as a byte slice.
 func (s Ssm) GetSecretValue(ctx context.Context, id string) ([]byte, error) {
 	p, err := s.client.GetParameter(ctx, &ssm.GetParameterInput{
 		Name: &id,
@@ -23,6 +27,8 @@ func (s Ssm) GetSecretValue(ctx context.Context, id string) ([]byte, error) {
 	return []byte(*p.Parameter.Value), nil
 }
 
+// GetSecretVersion retrieves the current version of a parameter from AWS Systems Manager Parameter Store.
+// It takes a context and a parameter ID, and returns the parameter version as a string.
 func (s Ssm) GetSecretVersion(ctx context.Context, id string) (string, error) {
 	p, err := s.client.GetParameter(ctx, &ssm.GetParameterInput{
 		Name: &id,
@@ -34,7 +40,8 @@ func (s Ssm) GetSecretVersion(ctx context.Context, id string) (string, error) {
 	return fmt.Sprintf("%d", p.Parameter.Version), nil
 }
 
-// NewSSM creates a new SSM client.
+// NewSSM creates a new AWS Systems Manager Parameter Store client.
+// It initializes the client with default AWS configuration and returns a pointer to Ssm.
 func NewSSM(ctx context.Context) (*Ssm, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {

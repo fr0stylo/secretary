@@ -62,6 +62,8 @@ func (r *Retriever) CreateSecretsFromEnvironment(ctx context.Context, envSecrets
 	return nil
 }
 
+// Clean removes all secret files and unsets related environment variables.
+// This should be called when the application is shutting down to ensure secrets are not left on disk.
 func (r *Retriever) Clean() error {
 	for _, secret := range r.pulledVersions {
 		if err := os.Remove(secret.Path); err != nil {
