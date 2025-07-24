@@ -28,7 +28,7 @@ func (s *SecretManager) GetSecretVersion(ctx context.Context, id string) (string
 }
 
 // NewSecretManager creates a new dummy secret manager for testing purposes.
-// It initializes with version 0 and returns a pointer to SecretManager.
+// NewSecretManager creates and returns a new dummy SecretManager initialized with version 0.
 func NewSecretManager() *SecretManager {
 	return &SecretManager{
 		version: 0,

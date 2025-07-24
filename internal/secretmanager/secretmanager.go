@@ -32,14 +32,14 @@ func WithFrequency(frequency time.Duration) ConfigOption {
 	}
 }
 
-// WithTimeout sets the timeout for secret retrieval operations.
+// WithTimeout returns a ConfigOption that sets the timeout duration for secret retrieval operations.
 func WithTimeout(timeout time.Duration) ConfigOption {
 	return func(config *Config) {
 		config.Timeout = timeout
 	}
 }
 
-// WithPath sets the path where secret files will be stored.
+// WithPath returns a ConfigOption that sets the filesystem path for storing secret files.
 func WithPath(path string) ConfigOption {
 	return func(config *Config) {
 		config.Path = path

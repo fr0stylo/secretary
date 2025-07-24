@@ -41,7 +41,8 @@ func (s Ssm) GetSecretVersion(ctx context.Context, id string) (string, error) {
 }
 
 // NewSSM creates a new AWS Systems Manager Parameter Store client.
-// It initializes the client with default AWS configuration and returns a pointer to Ssm.
+// NewSSM creates a new AWS Systems Manager Parameter Store client using the default AWS configuration.
+// It returns a pointer to an Ssm instance or an error if configuration loading fails.
 func NewSSM(ctx context.Context) (*Ssm, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {

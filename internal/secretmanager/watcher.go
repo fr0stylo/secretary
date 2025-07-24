@@ -15,7 +15,7 @@ type Watcher struct {
 }
 
 // NewWatcher creates a new Watcher with the given Retriever.
-// The Watcher will use the Retriever to check for secret changes and update them.
+// NewWatcher creates and returns a new Watcher that monitors secrets using the provided Retriever.
 func NewWatcher(retriever *Retriever) *Watcher {
 	return &Watcher{r: retriever}
 }

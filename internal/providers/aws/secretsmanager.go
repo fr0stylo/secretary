@@ -44,7 +44,8 @@ func (a *SecretsManager) GetSecretVersion(ctx context.Context, s string) (string
 	return "", fmt.Errorf("no current version found")
 }
 
-// NewSecretsManager creates a new AWS Secrets Manager client.
+// NewSecretsManager initializes and returns a SecretsManager using the default AWS configuration.
+// Returns an error if the AWS configuration cannot be loaded.
 func NewSecretsManager(ctx context.Context) (*SecretsManager, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
