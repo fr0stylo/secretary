@@ -11,13 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/fr0stylo/secretary/internal/providers/aws"
-	"github.com/fr0stylo/secretary/internal/providers/dummy"
+	"github.com/fr0stylo/secretary/internal/providers"
 	"github.com/fr0stylo/secretary/internal/secretmanager"
 )
 
 var (
-	provider  = flag.String("provider", "aws", "The secret provider to use")
 	path      = flag.String("path", "/tmp", "The secret path to store secrets")
 	frequency = flag.Duration("frequency", 15*time.Second, "The frequency to check for secret changes")
 	timeout   = flag.Duration("timeout", 10*time.Second, "The timeout for secret retrieval operations")
@@ -28,23 +26,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var client secretmanager.Client
-	switch *provider {
-	case "aws":
-		sm, err := aws.NewSecretsManager(ctx)
-		if err != nil {
-			log.Fatal(err)
-		}
-		client = sm
-	case "awsssm":
-		sm, err := aws.NewSSM(ctx)
-		if err != nil {
-			log.Fatal(err)
-		}
-		client = sm
-	case "dummy":
-		client = dummy.NewSecretManager()
-	}
+	client := providers.NewMux()
 
 	sc := secretmanager.NewRetriever(client,
 		secretmanager.WithFrequency(*frequency),
