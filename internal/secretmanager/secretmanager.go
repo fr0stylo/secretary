@@ -39,6 +39,7 @@ func WithTimeout(timeout time.Duration) ConfigOption {
 	}
 }
 
+// WithPath sets the path where secret files will be stored.
 func WithPath(path string) ConfigOption {
 	return func(config *Config) {
 		config.Path = path
